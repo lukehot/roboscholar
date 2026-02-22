@@ -31,6 +31,10 @@
             {{ paper.pdf_filename }}
         </span>
         {% endif %}
+        <a href="/papers/{{ paper.slug }}/quiz"
+           class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-lg transition">
+            Take Quiz
+        </a>
     </div>
 
     {% if paper.summary %}

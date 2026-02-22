@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Quiz: {{ paper.title }} - RoboScholar{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <a href="/papers/{{ paper.slug }}" class="text-sm text-indigo-400 hover:text-indigo-300">&larr; Back to paper</a>
+</div>
+
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-xl font-bold mb-2">Quiz: {{ paper.title }}</h1>
+    <p class="text-sm text-gray-500 mb-6">{{ answered }}/{{ total }} questions answered</p>
+
+    {% if done %}
+    <div class="bg-green-900/30 border border-green-700 rounded-lg p-6 text-center">
+        <p class="text-green-300 text-lg font-semibold mb-2">All questions completed!</p>
+        <a href="/papers/{{ paper.slug }}" class="text-indigo-400 hover:text-indigo-300">Back to paper</a>
+    </div>
+    {% elif question %}
+    <form method="post" action="/papers/{{ paper.slug }}/quiz" class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+        <input type="hidden" name="question_id" value="{{ question.id }}">
+        <p class="text-lg mb-6">{{ question.question }}</p>
+
+        <div class="space-y-3 mb-6">
+            {% for choice in question.choices %}
+            <label class="flex items-center gap-3 bg-gray-800 hover:bg-gray-750 border border-gray-700 rounded-lg px-4 py-3 cursor-pointer transition">
+                <input type="radio" name="selected" value="{{ loop.index0 }}" required
+                       class="text-indigo-500">
+                <span>{{ choice }}</span>
+            </label>
+            {% endfor %}
+        </div>
+
+        <button type="submit"
+                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg transition">
+            Submit Answer
+        </button>
+    </form>
+    {% else %}
+    <p class="text-gray-500">No quiz questions available for this paper yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

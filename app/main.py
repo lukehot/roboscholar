@@ -113,3 +113,85 @@ async def logout():
     redirect = RedirectResponse("/", status_code=303)
     clear_auth_cookies(redirect)
     return redirect
+
+
+# --- Quiz ---
+
+@app.get("/papers/{slug}/quiz", response_class=HTMLResponse)
+async def quiz_page(request: Request, slug: str):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    db = get_client()
+    paper = db.table("papers").select("*").eq("slug", slug).single().execute().data
+    questions = (
+        db.table("questions").select("*")
+        .eq("paper_number", paper["number"]).execute().data
+    )
+
+    if not questions:
+        return templates.TemplateResponse("quiz.html", _ctx(
+            request, paper=paper, question=None, total=0, current=0,
+        ))
+
+    # Find first unanswered question for this user
+    attempts = (
+        db.table("quiz_attempts").select("question_id")
+        .eq("user_id", user["id"]).execute().data
+    )
+    answered_ids = set(a["question_id"] for a in attempts)
+    unanswered = [q for q in questions if q["id"] not in answered_ids]
+
+    import json
+    question = unanswered[0] if unanswered else None
+    if question and isinstance(question["choices"], str):
+        question["choices"] = json.loads(question["choices"])
+
+    return templates.TemplateResponse("quiz.html", _ctx(
+        request,
+        paper=paper,
+        question=question,
+        total=len(questions),
+        answered=len(answered_ids),
+        done=not unanswered,
+    ))
+
+
+@app.post("/papers/{slug}/quiz")
+async def quiz_submit(
+    request: Request,
+    slug: str,
+    question_id: int = Form(...),
+    selected: int = Form(...),
+):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    db = get_client()
+    paper = db.table("papers").select("*").eq("slug", slug).single().execute().data
+
+    import json
+    question = db.table("questions").select("*").eq("id", question_id).single().execute().data
+    if isinstance(question["choices"], str):
+        question["choices"] = json.loads(question["choices"])
+
+    is_correct = selected == question["correct_index"]
+
+    # Record attempt
+    from app.db import get_admin_client
+    get_admin_client().table("quiz_attempts").insert({
+        "user_id": user["id"],
+        "question_id": question_id,
+        "selected_index": selected,
+        "is_correct": is_correct,
+    }).execute()
+
+    return templates.TemplateResponse("quiz_result.html", _ctx(
+        request,
+        paper=paper,
+        question=question,
+        selected=selected,
+        is_correct=is_correct,
+    ))
