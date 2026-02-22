@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ paper.title }} - RoboScholar{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <a href="/" class="text-sm text-indigo-400 hover:text-indigo-300">&larr; Back to papers</a>
+</div>
+
+<article class="bg-gray-900 border border-gray-800 rounded-lg p-8">
+    <div class="mb-6">
+        <span class="text-sm text-gray-500">#{{ paper.number }} &middot; {{ paper.category }}</span>
+        <h1 class="text-2xl font-bold mt-2 mb-3">{{ paper.title }}</h1>
+        <div class="flex flex-wrap gap-4 text-sm text-gray-400">
+            {% if paper.authors %}
+            <span>{{ paper.authors }}</span>
+            {% endif %}
+            {% if paper.year %}
+            <span>&middot; {{ paper.year }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="flex gap-3 mb-8">
+        {% if paper.link %}
+        <a href="{{ paper.link }}" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition">
+            View Paper &nearr;
+        </a>
+        {% endif %}
+        {% if paper.pdf_filename %}
+        <span class="inline-flex items-center text-sm text-green-400 bg-green-900/30 px-3 py-2 rounded-lg">
+            {{ paper.pdf_filename }}
+        </span>
+        {% endif %}
+    </div>
+
+    {% if paper.summary %}
+    <div class="prose prose-invert max-w-none">
+        <h2 class="text-lg font-semibold mb-3 text-gray-200">Summary</h2>
+        <div class="text-gray-300 leading-relaxed whitespace-pre-line">{{ paper.summary }}</div>
+    </div>
+    {% else %}
+    <p class="text-gray-500 italic">Summary not yet generated.</p>
+    {% endif %}
+</article>
+{% endblock %}
