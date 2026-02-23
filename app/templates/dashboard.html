@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - RoboScholar{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-2xl font-bold mb-1">{{ profile.display_name or profile.username }}</h1>
+    <p class="text-gray-500 text-sm">Your learning progress</p>
+</div>
+
+<!-- Stats cards -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+    <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+        <p class="text-3xl font-bold text-indigo-400">{{ total_points }}</p>
+        <p class="text-sm text-gray-500 mt-1">Points</p>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+        <p class="text-3xl font-bold text-emerald-400">{{ papers_completed }}</p>
+        <p class="text-sm text-gray-500 mt-1">Papers completed</p>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+        <p class="text-3xl font-bold text-amber-400">{{ accuracy }}%</p>
+        <p class="text-sm text-gray-500 mt-1">Accuracy</p>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+        <p class="text-3xl font-bold text-gray-300">{{ total_answered }}</p>
+        <p class="text-sm text-gray-500 mt-1">Questions answered</p>
+    </div>
+</div>
+
+<!-- Paper progress -->
+<h2 class="text-lg font-semibold mb-4">Paper Progress</h2>
+
+{% if progress %}
+<div class="space-y-3">
+    {% for p in progress %}
+    <a href="/papers/{{ p.paper.slug }}" class="block bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 hover:bg-gray-800 transition">
+        <div class="flex items-center justify-between gap-4">
+            <div class="min-w-0">
+                <span class="text-gray-500 text-sm">#{{ p.paper_number }}</span>
+                <span class="font-medium text-gray-100 ml-1">{{ p.paper.title or 'Paper #' ~ p.paper_number }}</span>
+            </div>
+            <div class="flex items-center gap-4 flex-shrink-0">
+                <span class="text-sm text-gray-400">{{ p.questions_correct }}/{{ p.questions_answered }} correct</span>
+                <span class="text-sm font-medium text-indigo-400">{{ p.points }} pts</span>
+                {% if p.completed %}
+                <span class="text-xs bg-emerald-900 text-emerald-300 px-2 py-0.5 rounded">Done</span>
+                {% else %}
+                <span class="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded">In progress</span>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Progress bar -->
+        <div class="mt-3 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+            {% set pct = (p.questions_answered / 3 * 100) | int %}
+            <div class="h-full rounded-full {% if p.completed %}bg-emerald-500{% else %}bg-indigo-500{% endif %}"
+                 style="width: {{ [pct, 100] | min }}%"></div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
+    <p class="text-gray-500 mb-4">You haven't started any quizzes yet.</p>
+    <a href="/" class="text-indigo-400 hover:text-indigo-300">Browse papers to get started</a>
+</div>
+{% endif %}
+{% endblock %}

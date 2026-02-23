@@ -232,3 +232,105 @@ async def quiz_submit(
         is_correct=is_correct,
         points_earned=points_earned,
     ))
+
+
+# --- Dashboard ---
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    admin = get_admin_client()
+    db = get_client()
+
+    # Get user's progress across all papers
+    progress = (
+        admin.table("user_paper_progress")
+        .select("*")
+        .eq("user_id", user["id"])
+        .order("paper_number")
+        .execute().data
+    )
+
+    # Get paper titles for display
+    paper_numbers = [p["paper_number"] for p in progress]
+    papers_map = {}
+    if paper_numbers:
+        papers = db.table("papers").select("number, title, slug").in_("number", paper_numbers).execute().data
+        papers_map = {p["number"]: p for p in papers}
+
+    # Attach paper info to progress
+    for p in progress:
+        p["paper"] = papers_map.get(p["paper_number"], {})
+
+    # Get user profile
+    profile = admin.table("profiles").select("*").eq("id", user["id"]).execute().data
+    profile = profile[0] if profile else {"username": user.get("email", ""), "display_name": "Scholar"}
+
+    # Stats
+    total_points = sum(p["points"] for p in progress)
+    papers_completed = sum(1 for p in progress if p["completed"])
+    total_correct = sum(p["questions_correct"] for p in progress)
+    total_answered = sum(p["questions_answered"] for p in progress)
+    accuracy = round(total_correct / total_answered * 100) if total_answered else 0
+
+    return templates.TemplateResponse("dashboard.html", _ctx(
+        request,
+        profile=profile,
+        progress=progress,
+        total_points=total_points,
+        papers_completed=papers_completed,
+        total_correct=total_correct,
+        total_answered=total_answered,
+        accuracy=accuracy,
+    ))
+
+
+# --- Leaderboard ---
+
+@app.get("/leaderboard", response_class=HTMLResponse)
+async def leaderboard(request: Request):
+    admin = get_admin_client()
+
+    # Aggregate points per user
+    all_progress = admin.table("user_paper_progress").select("user_id, points, questions_correct, questions_answered, completed").execute().data
+
+    # Group by user
+    user_stats: dict[str, dict] = {}
+    for p in all_progress:
+        uid = p["user_id"]
+        if uid not in user_stats:
+            user_stats[uid] = {"points": 0, "correct": 0, "answered": 0, "completed": 0}
+        user_stats[uid]["points"] += p["points"]
+        user_stats[uid]["correct"] += p["questions_correct"]
+        user_stats[uid]["answered"] += p["questions_answered"]
+        user_stats[uid]["completed"] += 1 if p["completed"] else 0
+
+    # Get profiles for all users
+    if user_stats:
+        profiles = admin.table("profiles").select("id, username, display_name").in_("id", list(user_stats.keys())).execute().data
+        profiles_map = {p["id"]: p for p in profiles}
+    else:
+        profiles_map = {}
+
+    # Build ranked list
+    rankings = []
+    for uid, stats in user_stats.items():
+        profile = profiles_map.get(uid, {"username": "unknown", "display_name": "Unknown"})
+        accuracy = round(stats["correct"] / stats["answered"] * 100) if stats["answered"] else 0
+        rankings.append({
+            "username": profile.get("display_name") or profile.get("username", "Unknown"),
+            "points": stats["points"],
+            "papers_completed": stats["completed"],
+            "accuracy": accuracy,
+            "total_answered": stats["answered"],
+        })
+
+    rankings.sort(key=lambda x: x["points"], reverse=True)
+
+    return templates.TemplateResponse("leaderboard.html", _ctx(
+        request,
+        rankings=rankings,
+    ))

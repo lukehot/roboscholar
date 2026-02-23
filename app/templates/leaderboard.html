@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard - RoboScholar{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-2xl font-bold mb-1">Leaderboard</h1>
+    <p class="text-gray-500 text-sm">Top scholars ranked by points</p>
+</div>
+
+{% if rankings %}
+<div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+    <table class="w-full">
+        <thead>
+            <tr class="border-b border-gray-800 text-sm text-gray-500">
+                <th class="px-5 py-3 text-left w-12">Rank</th>
+                <th class="px-5 py-3 text-left">Scholar</th>
+                <th class="px-5 py-3 text-right">Points</th>
+                <th class="px-5 py-3 text-right hidden sm:table-cell">Papers</th>
+                <th class="px-5 py-3 text-right hidden sm:table-cell">Accuracy</th>
+                <th class="px-5 py-3 text-right hidden md:table-cell">Questions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rankings %}
+            <tr class="border-b border-gray-800/50 hover:bg-gray-800/50 transition">
+                <td class="px-5 py-4">
+                    {% if loop.index == 1 %}
+                    <span class="text-lg">&#129351;</span>
+                    {% elif loop.index == 2 %}
+                    <span class="text-lg">&#129352;</span>
+                    {% elif loop.index == 3 %}
+                    <span class="text-lg">&#129353;</span>
+                    {% else %}
+                    <span class="text-gray-500">{{ loop.index }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-4 font-medium text-gray-100">{{ r.username }}</td>
+                <td class="px-5 py-4 text-right text-indigo-400 font-semibold">{{ r.points }}</td>
+                <td class="px-5 py-4 text-right text-gray-400 hidden sm:table-cell">{{ r.papers_completed }}</td>
+                <td class="px-5 py-4 text-right hidden sm:table-cell">
+                    <span class="{% if r.accuracy >= 80 %}text-emerald-400{% elif r.accuracy >= 50 %}text-amber-400{% else %}text-red-400{% endif %}">
+                        {{ r.accuracy }}%
+                    </span>
+                </td>
+                <td class="px-5 py-4 text-right text-gray-500 hidden md:table-cell">{{ r.total_answered }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
+    <p class="text-gray-500">No scholars have completed any quizzes yet. Be the first!</p>
+</div>
+{% endif %}
+{% endblock %}
