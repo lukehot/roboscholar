@@ -68,6 +68,13 @@
 </div>
 {% endif %}
 
+{% if paper.peer_reviews %}
+<div class="bg-gray-900 border border-gray-800 rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4 text-gray-200">Peer Review &amp; Critical Analysis</h2>
+    <div class="space-y-3 text-sm text-gray-300 leading-relaxed whitespace-pre-line">{{ paper.peer_reviews }}</div>
+</div>
+{% endif %}
+
 {% if not paper.summary and not paper.key_learnings %}
 <p class="text-gray-500 italic">Detailed content not yet available for this paper.</p>
 {% endif %}
