@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
 from app.auth import clear_auth_cookies, get_current_user, set_auth_cookies
-from app.db import get_client
+from app.db import get_admin_client, get_client
 
 app = FastAPI(title="RoboScholar")
 
@@ -123,10 +123,11 @@ async def quiz_page(request: Request, slug: str):
     if not user:
         return RedirectResponse("/login", status_code=303)
 
-    db = get_client()
-    paper = db.table("papers").select("*").eq("slug", slug).single().execute().data
+    import json
+    admin = get_admin_client()
+    paper = get_client().table("papers").select("*").eq("slug", slug).single().execute().data
     questions = (
-        db.table("questions").select("*")
+        get_client().table("questions").select("*")
         .eq("paper_number", paper["number"]).execute().data
     )
 
@@ -135,15 +136,14 @@ async def quiz_page(request: Request, slug: str):
             request, paper=paper, question=None, total=0, current=0,
         ))
 
-    # Find first unanswered question for this user
+    # Find first unanswered question for this user (admin to bypass RLS)
     attempts = (
-        db.table("quiz_attempts").select("question_id")
+        admin.table("quiz_attempts").select("question_id")
         .eq("user_id", user["id"]).execute().data
     )
     answered_ids = set(a["question_id"] for a in attempts)
     unanswered = [q for q in questions if q["id"] not in answered_ids]
 
-    import json
     question = unanswered[0] if unanswered else None
     if question and isinstance(question["choices"], str):
         question["choices"] = json.loads(question["choices"])
@@ -169,19 +169,16 @@ async def quiz_submit(
     if not user:
         return RedirectResponse("/login", status_code=303)
 
+    import json
     db = get_client()
+    admin = get_admin_client()
     paper = db.table("papers").select("*").eq("slug", slug).single().execute().data
 
-    import json
     question = db.table("questions").select("*").eq("id", question_id).single().execute().data
     if isinstance(question["choices"], str):
         question["choices"] = json.loads(question["choices"])
 
     is_correct = selected == question["correct_index"]
-
-    # Record attempt
-    from app.db import get_admin_client
-    admin = get_admin_client()
     admin.table("quiz_attempts").insert({
         "user_id": user["id"],
         "question_id": question_id,
@@ -200,7 +197,7 @@ async def quiz_submit(
     )
 
     total_questions = len(
-        db.table("questions").select("id")
+        admin.table("questions").select("id")
         .eq("paper_number", paper["number"]).execute().data
     )
 

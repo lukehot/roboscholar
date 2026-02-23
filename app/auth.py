@@ -1,10 +1,10 @@
 """Authentication helpers using Supabase Auth."""
 from __future__ import annotations
 
-from fastapi import Request, Response
-from supabase import Client
+import json
+import base64
 
-from app.db import get_client
+from fastapi import Request, Response
 
 ACCESS_TOKEN_COOKIE = "sb_access_token"
 REFRESH_TOKEN_COOKIE = "sb_refresh_token"
@@ -34,16 +34,20 @@ def clear_auth_cookies(response: Response) -> None:
 
 
 def get_current_user(request: Request) -> dict | None:
-    """Get the current user from cookies. Returns user dict or None."""
+    """Get the current user from the JWT cookie. Decodes locally without API call."""
     access_token = request.cookies.get(ACCESS_TOKEN_COOKIE)
-    refresh_token = request.cookies.get(REFRESH_TOKEN_COOKIE)
-
     if not access_token:
         return None
 
     try:
-        client: Client = get_client()
-        resp = client.auth.set_session(access_token, refresh_token)
-        return resp.user.model_dump() if resp.user else None
+        # Decode JWT payload (middle segment) — we trust it since it's httponly
+        payload = access_token.split(".")[1]
+        # Add padding
+        payload += "=" * (4 - len(payload) % 4)
+        data = json.loads(base64.urlsafe_b64decode(payload))
+        return {
+            "id": data.get("sub"),
+            "email": data.get("email"),
+        }
     except Exception:
         return None

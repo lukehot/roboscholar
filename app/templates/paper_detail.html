@@ -5,7 +5,7 @@
     <a href="/" class="text-sm text-indigo-400 hover:text-indigo-300">&larr; Back to papers</a>
 </div>
 
-<article class="bg-gray-900 border border-gray-800 rounded-lg p-8">
+<article class="bg-gray-900 border border-gray-800 rounded-lg p-8 mb-6">
     <div class="mb-6">
         <span class="text-sm text-gray-500">#{{ paper.number }} &middot; {{ paper.category }}</span>
         <h1 class="text-2xl font-bold mt-2 mb-3">{{ paper.title }}</h1>
@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    <div class="flex gap-3 mb-8">
+    <div class="flex flex-wrap gap-3 mb-8">
         {% if paper.link %}
         <a href="{{ paper.link }}" target="_blank" rel="noopener"
            class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition">
@@ -38,12 +38,37 @@
     </div>
 
     {% if paper.summary %}
-    <div class="prose prose-invert max-w-none">
-        <h2 class="text-lg font-semibold mb-3 text-gray-200">Summary</h2>
-        <div class="text-gray-300 leading-relaxed whitespace-pre-line">{{ paper.summary }}</div>
+    <div class="mb-8">
+        <h2 class="text-lg font-semibold mb-3 text-gray-200">TL;DR</h2>
+        <p class="text-gray-300 leading-relaxed">{{ paper.summary }}</p>
     </div>
-    {% else %}
-    <p class="text-gray-500 italic">Summary not yet generated.</p>
     {% endif %}
 </article>
+
+{% if paper.reading_guide %}
+<div class="bg-indigo-950/30 border border-indigo-900/50 rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-3 text-indigo-400">How to Read This Paper</h2>
+    <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{{ paper.reading_guide }}</p>
+</div>
+{% endif %}
+
+{% if paper.key_learnings %}
+<div class="bg-gray-900 border border-gray-800 rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4 text-gray-200">Key Takeaways</h2>
+    <div class="space-y-2">
+        {% for line in paper.key_learnings.strip().split('\n') %}
+        {% if line.strip() %}
+        <div class="flex gap-3 text-sm">
+            <span class="text-indigo-400 flex-shrink-0 mt-0.5">&#9656;</span>
+            <p class="text-gray-300 leading-relaxed">{{ line.strip().lstrip('- ') }}</p>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if not paper.summary and not paper.key_learnings %}
+<p class="text-gray-500 italic">Detailed content not yet available for this paper.</p>
+{% endif %}
 {% endblock %}
