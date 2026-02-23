@@ -181,12 +181,51 @@ async def quiz_submit(
 
     # Record attempt
     from app.db import get_admin_client
-    get_admin_client().table("quiz_attempts").insert({
+    admin = get_admin_client()
+    admin.table("quiz_attempts").insert({
         "user_id": user["id"],
         "question_id": question_id,
         "selected_index": selected,
         "is_correct": is_correct,
     }).execute()
+
+    # Update paper progress
+    points_earned = 10 if is_correct else 0
+    progress = (
+        admin.table("user_paper_progress")
+        .select("*")
+        .eq("user_id", user["id"])
+        .eq("paper_number", paper["number"])
+        .execute().data
+    )
+
+    total_questions = len(
+        db.table("questions").select("id")
+        .eq("paper_number", paper["number"]).execute().data
+    )
+
+    if progress:
+        p = progress[0]
+        new_answered = p["questions_answered"] + 1
+        new_correct = p["questions_correct"] + (1 if is_correct else 0)
+        new_points = p["points"] + points_earned
+        completed = new_answered >= total_questions
+        admin.table("user_paper_progress").update({
+            "questions_answered": new_answered,
+            "questions_correct": new_correct,
+            "points": new_points,
+            "completed": completed,
+            "updated_at": "now()",
+        }).eq("id", p["id"]).execute()
+    else:
+        admin.table("user_paper_progress").insert({
+            "user_id": user["id"],
+            "paper_number": paper["number"],
+            "questions_answered": 1,
+            "questions_correct": 1 if is_correct else 0,
+            "points": points_earned,
+            "completed": 1 >= total_questions,
+        }).execute()
 
     return templates.TemplateResponse("quiz_result.html", _ctx(
         request,
@@ -194,4 +233,5 @@ async def quiz_submit(
         question=question,
         selected=selected,
         is_correct=is_correct,
+        points_earned=points_earned,
     ))
